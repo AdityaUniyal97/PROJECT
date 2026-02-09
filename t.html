@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Graphic Era Bus Mission Control</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+    <style>
+        :root {
+            font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+            --bg: linear-gradient(135deg, #04152f, #1e3a8a);
+            --card: rgba(255, 255, 255, 0.97);
+            --card-soft: rgba(15, 23, 42, 0.05);
+            --accent: #0ea5e9;
+            --muted: #475569;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: #0f172a;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hero {
+            padding: 28px 34px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            letter-spacing: 0.6px;
+        }
+
+        .hero small {
+            display: block;
+            margin-top: 6px;
+            color: #dbeafe;
+            font-weight: 500;
+        }
+
+        .hero .cta {
+            background: white;
+            color: #0f172a;
+            padding: 12px 20px;
+            border-radius: 999px;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+        }
+
+        main {
+            flex: 1;
+        }
+
+        .minimal {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding: 0 34px 34px;
+        }
+
+        .info-panel {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            flex: 1;
+            min-width: 180px;
+            background: var(--card);
+            border-radius: 18px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            perspective: 800px;
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            inset: 10px;
+            border-radius: 12px;
+            z-index: -1;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(37, 99, 235, 0));
+            transform: translateZ(-1px);
+        }
+
+        .label {
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .value {
+            margin-top: 6px;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .slider-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 16px 20px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .slider-panel label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+        }
+
+        .slider-panel select {
+            border-radius: 10px;
+            padding: 10px 12px;
+            border: 1px solid #cbd5f5;
+            font-size: 0.95rem;
+            background: #fff;
+            color: #0f172a;
+        }
+
+        .stop-icon span {
+            display: inline-flex;
+            width: 24px;
+            height: 24px;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 700;
+            border-radius: 50%;
+        }
+
+        .bus-icon span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fde047, #f97316);
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.75);
+        }
+
+        .college-pin span {
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: linear-gradient(130deg, #ec4899, #f97316);
+            color: white;
+            font-weight: 700;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .action-panel {
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 20px;
+            padding: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .status-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f97316;
+            box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
+        }
+
+        .status-text {
+            font-size: 1rem;
+        }
+
+        .journey-btn {
+            border: none;
+            padding: 14px 22px;
+            border-radius: 20px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            color: white;
+            background: linear-gradient(135deg, #0ea5e9, #2563eb);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .journey-btn:active {
+            transform: translateY(1px);
+        }
+
+        #mapWrapper {
+            border-radius: 26px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            background: #0f172a;
+            box-shadow: 0 30px 60px rgba(15, 23, 42, 0.4);
+            position: relative;
+        }
+
+        #mapWrapper::before {
+            content: '';
+            position: absolute;
+            inset: 10px;
+            border-radius: 18px;
+            pointer-events: none;
+            background: radial-gradient(circle at top right, rgba(14, 165, 233, 0.4), transparent 55%);
+            mix-blend-mode: screen;
+        }
+
+        .stop-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 18px;
+            padding: 18px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+        }
+
+        .stop-panel ol {
+            margin: 12px 0 0;
+            padding-left: 24px;
+            color: #0f172a;
+        }
+
+        .stop-panel li {
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .map-glow {
+            position: absolute;
+            inset: 16px;
+            border-radius: inherit;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            pointer-events: none;
+            box-shadow: 0 0 40px rgba(14, 165, 233, 0.6);
+        }
+
+        .college-pin span {
+            display: inline-flex;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: linear-gradient(130deg, #ec4899, #f97316);
+            color: white;
+            font-weight: 700;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+        }
+
+        @media (max-width: 640px) {
+            .action-panel {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .info-panel {
+                flex-direction: column;
+            }
+        }
+
+        #map {
+            width: 100%;
+            height: 420px;
+        }
+
+        .table-wrapper {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        th,
+        td {
+            padding: 12px 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #eef2ff;
+            color: #1e1b4b;
+            font-size: 0.85rem;
+            letter-spacing: 0.4px;
+        }
+
+        tbody tr:nth-child(odd) {
+            background: #f8fafc;
+        }
+
+        .postal-items {
+            display: grid;
+            gap: 8px;
+        }
+
+        .postal-card {
+            padding: 10px 14px;
+            border-radius: 14px;
+            border: 1px solid #cbd5f5;
+            background: #fff;
+        }
+
+        .postal-card strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 900px) {
+            .hero {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            #mapWrapper {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="hero">
+        <div>
+            <h1>Graphic Era Bus Mission Control</h1>
+            <small>Route planning for Graphic Era University (Dehradun) · Realistic timings for students in postal zones
+                248014, 248003, 248001.</small>
+        </div>
+        <a class="cta" href="index.html" data-logout>Logout</a>
+    </header>
+
+    <main class="minimal">
+        <section class="info-panel">
+            <div class="card">
+                <div class="label">Driver name</div>
+                <div id="driverName" class="value">—</div>
+            </div>
+            <div class="card">
+                <div class="label">Bus number</div>
+                <div id="busNumber" class="value">—</div>
+            </div>
+            <div class="card">
+                <div class="label">Route</div>
+                <div id="routeName" class="value">—</div>
+            </div>
+        </section>
+
+        <section class="slider-panel selection-panel">
+            <label for="driverSelect">Driver</label>
+            <select id="driverSelect"></select>
+            <label for="busSelect">Bus number</label>
+            <select id="busSelect"></select>
+            <label for="routeSelect">Route</label>
+            <select id="routeSelect"></select>
+        </section>
+
+        <section class="action-panel">
+            <div class="status-line" id="statusLine">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText" class="status-text">Bus stopped</span>
+            </div>
+            <button class="journey-btn" id="journeyBtn">Start journey</button>
+        </section>
+
+        <section id="mapWrapper">
+            <div id="map"></div>
+        </section>
+
+        <section class="stop-panel">
+            <div class="label">Assigned stops</div>
+            <ol id="stopList">
+                <li>Load a driver to view stops.</li>
+            </ol>
+        </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        const collegeCoords = { lat: 30.2689, lon: 77.9931 };
+        const drivers = [
+            { driverName: 'Sunil Kumar', busNumber: 'UK07PA1696', shift: '07:00 AM' },
+            { driverName: 'Pramod Chand', busNumber: 'UK07PA1691', shift: '09:00 AM' },
+            { driverName: 'Gulshan', busNumber: 'UK07PA3542', shift: '07:00 AM' },
+            { driverName: 'Deepak Bhandari', busNumber: 'UK07PA3346', shift: '06:10 AM' },
+            { driverName: 'Subhash Chand', busNumber: 'UK07PA5006', shift: '06:35 AM' }
+        ];
+
+        const routes = [
+            {
+                id: 'clock-darshan-saharanpur',
+                name: 'Clock Tower → Darshanlal → Saharanpur → Graphic Era',
+                color: '#0ea5e9',
+                stops: [
+                    { name: 'Clock Tower', coords: { lat: 30.3189, lon: 77.9984 } },
+                    { name: 'Darshanlal Chowk', coords: { lat: 30.3165, lon: 77.9955 } },
+                    { name: 'Saharanpur Chowk', coords: { lat: 30.3195, lon: 77.9902 } },
+                    { name: 'ISBT', coords: { lat: 30.3216, lon: 77.9871 } }
+                ]
+            },
+            {
+                id: 'saharanpur-matawala',
+                name: 'Saharanpur → Matawala Bagh → Graphic Era',
+                color: '#f97316',
+                stops: [
+                    { name: 'Saharanpur Chowk', coords: { lat: 30.3195, lon: 77.9902 } },
+                    { name: 'Matawala Bagh', coords: { lat: 30.3026, lon: 77.9875 } },
+                    { name: 'Hawa Vihar', coords: { lat: 30.2934, lon: 77.9981 } }
+                ]
+            },
+            {
+                id: 'naya-balupur-dalanwala',
+                name: 'Naya Gaon → Ballupur → Dalanwala → Graphic Era',
+                color: '#a855f7',
+                stops: [
+                    { name: 'Naya Gaon', coords: { lat: 30.3078, lon: 77.9998 } },
+                    { name: 'Ballupur', coords: { lat: 30.3208, lon: 77.9942 } },
+                    { name: 'Dalanwala', coords: { lat: 30.3101, lon: 78.0027 } },
+                    { name: 'Shivalik', coords: { lat: 30.2991, lon: 77.9909 } }
+                ]
+            },
+            {
+                id: 'gms-balliwala',
+                name: 'GMS Road → Balliwala → Vasant Vihar → Graphic Era',
+                color: '#22d3ee',
+                stops: [
+                    { name: 'GMS Road (Clock Tower)', coords: { lat: 30.3189, lon: 77.9984 } },
+                    { name: 'Balliwala Chowk', coords: { lat: 30.3154, lon: 77.9893 } },
+                    { name: 'Vasant Vihar', coords: { lat: 30.3121, lon: 77.9906 } }
+                ]
+            },
+            {
+                id: 'selaqui-sudhowala',
+                name: 'Selaqui → Sudhowala → Graphic Era',
+                color: '#16a34a',
+                stops: [
+                    { name: 'Selaqui Chowk', coords: { lat: 30.3022, lon: 78.0235 } },
+                    { name: 'Sudhowala', coords: { lat: 30.2986, lon: 78.0184 } },
+                    { name: 'Nanda Ki Chowki', coords: { lat: 30.2931, lon: 78.0146 } }
+                ]
+            }
+        ];
+
+        let selectedRoute = routes[0];
+        let selectedDriver = drivers[0];
+        let journeyActive = false;
+        let journeyProgress = 0;
+        let journeyInterval;
+        let routeLine;
+
+        const driverSelect = document.querySelector('#driverSelect');
+        const busSelect = document.querySelector('#busSelect');
+        const routeSelect = document.querySelector('#routeSelect');
+        const stopList = document.querySelector('#stopList');
+        const statusText = document.querySelector('#statusText');
+        const statusDot = document.querySelector('#statusDot');
+        const routeNameLabel = document.querySelector('#routeName');
+        const driverNameLabel = document.querySelector('#driverName');
+        const busNumberLabel = document.querySelector('#busNumber');
+        const journeyBtn = document.querySelector('#journeyBtn');
+
+        const map = L.map('map', { zoomControl: false }).setView([30.2900, 77.9900], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18
+        }).addTo(map);
+
+        const stopLayer = L.layerGroup().addTo(map);
+        const collegeMarker = L.marker([collegeCoords.lat, collegeCoords.lon], {
+            icon: L.divIcon({
+                className: 'college-pin',
+                html: '<span>GEU</span>',
+                iconAnchor: [16, 16]
+            })
+        }).addTo(map);
+
+        const busIcon = L.divIcon({
+            className: 'bus-icon',
+            html: '<span>🚌</span>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
+        });
+        const busMarker = L.marker([collegeCoords.lat, collegeCoords.lon], { icon: busIcon }).addTo(map);
+
+        function populateSelects() {
+            driverSelect.innerHTML = drivers.map((driver, index) => `<option value="${index}">${driver.driverName}</option>`).join('');
+            busSelect.innerHTML = drivers.map(driver => `<option value="${driver.busNumber}">${driver.busNumber}</option>`).join('');
+            routeSelect.innerHTML = routes.map(route => `<option value="${route.id}">${route.name}</option>`).join('');
+        }
+
+        function setStatus(message, live) {
+            statusText.textContent = message;
+            statusDot.style.background = live ? '#10b981' : '#f97316';
+        }
+
+        function createStopIcon(color, index) {
+            return L.divIcon({
+                className: 'stop-icon',
+                html: `<span style="background:${color}; box-shadow: 0 0 15px rgba(0,0,0,0.3);">${index + 1}</span>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+        }
+
+        function drawRoute(route) {
+            if (routeLine) {
+                map.removeLayer(routeLine);
+            }
+            stopLayer.clearLayers();
+            const coords = route.stops.map(stop => [stop.coords.lat, stop.coords.lon]).concat([[collegeCoords.lat, collegeCoords.lon]]);
+            routeLine = L.polyline(coords, {
+                color: route.color,
+                weight: 4,
+                opacity: 0.95,
+                dashArray: '10 8'
+            }).addTo(map);
+
+            route.stops.forEach((stop, index) => {
+                L.marker([stop.coords.lat, stop.coords.lon], {
+                    icon: createStopIcon(route.color, index)
+                }).bindPopup(`<strong>${index + 1}. ${stop.name}</strong>`).addTo(stopLayer);
+            });
+            map.fitBounds(routeLine.getBounds().pad(0.12));
+        }
+
+        function updateStopList(route) {
+            stopList.innerHTML = route.stops.map((stop, index) => `<li>${index + 1}. ${stop.name}</li>`).join('');
+        }
+
+        function updateDriverPanel() {
+            driverNameLabel.textContent = selectedDriver.driverName;
+            busNumberLabel.textContent = selectedDriver.busNumber;
+            routeNameLabel.textContent = selectedRoute.name;
+        }
+
+        function getRoutePosition(progress) {
+            const stops = [...selectedRoute.stops, { name: 'Graphic Era University', coords: collegeCoords }];
+            if (stops.length === 1) return stops[0].coords;
+            const totalLegs = stops.length - 1;
+            const position = Math.min(totalLegs, progress * totalLegs);
+            const legIndex = Math.min(totalLegs - 1, Math.floor(position));
+            const ratio = position - legIndex;
+            const from = stops[legIndex].coords;
+            const to = stops[Math.min(totalLegs, legIndex + 1)].coords;
+            return {
+                lat: from.lat + (to.lat - from.lat) * ratio,
+                lon: from.lon + (to.lon - from.lon) * ratio
+            };
+        }
+
+        function updateBusMarker(progress) {
+            const pos = getRoutePosition(progress);
+            busMarker.setLatLng([pos.lat, pos.lon]);
+        }
+
+        function loadRouteById(id) {
+            const route = routes.find(r => r.id === id);
+            if (!route) return;
+            selectedRoute = route;
+            routeSelect.value = id;
+            updateDriverPanel();
+            drawRoute(route);
+            updateStopList(route);
+            journeyProgress = 0;
+            updateBusMarker(0);
+            setStatus('Bus stopped · ready to start', false);
+        }
+
+        function loadDriverByIndex(index) {
+            selectedDriver = drivers[index] ?? drivers[0];
+            driverSelect.value = index;
+            busSelect.value = selectedDriver.busNumber;
+            updateDriverPanel();
+        }
+
+        function startJourney() {
+            if (journeyActive) return;
+            journeyActive = true;
+            journeyProgress = 0;
+            journeyBtn.textContent = 'Stop journey';
+            setStatus('Bus live · route in motion', true);
+            journeyInterval = setInterval(() => {
+                journeyProgress = Math.min(1, journeyProgress + 0.015);
+                updateBusMarker(journeyProgress);
+                if (journeyProgress >= 1) {
+                    stopJourney(true);
+                }
+            }, 1500);
+        }
+
+        function stopJourney(arrived = false) {
+            journeyActive = false;
+            journeyBtn.textContent = 'Start journey';
+            setStatus(arrived ? 'Bus stopped · arrived at Graphic Era' : 'Bus stopped · ready to start', false);
+            clearInterval(journeyInterval);
+        }
+
+        driverSelect.addEventListener('change', event => {
+            loadDriverByIndex(Number(event.target.value));
+        });
+
+        busSelect.addEventListener('change', event => {
+            const driverIndex = drivers.findIndex(driver => driver.busNumber === event.target.value);
+            if (driverIndex >= 0) loadDriverByIndex(driverIndex);
+        });
+
+        routeSelect.addEventListener('change', event => {
+            loadRouteById(event.target.value);
+        });
+
+        journeyBtn.addEventListener('click', () => {
+            journeyActive ? stopJourney(false) : startJourney();
+        });
+
+        populateSelects();
+        loadDriverByIndex(0);
+        loadRouteById(routes[0].id);
+    </script>
+    <script>
+        const API_BASE = "http://localhost:5000/api";
+        const STORAGE_KEYS = {
+            token: "mcaAuthToken",
+            role: "mcaAuthRole",
+            name: "mcaDisplayName"
+        };
+
+        const sessionToken = localStorage.getItem(STORAGE_KEYS.token);
+        const sessionRole = localStorage.getItem(STORAGE_KEYS.role);
+        const sessionName = localStorage.getItem(STORAGE_KEYS.name);
+
+        const clearSession = () => {
+            Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+        };
+
+        const redirectToLogin = () => {
+            clearSession();
+            window.location.href = "index.html";
+        };
+
+        if (!sessionToken || sessionRole !== "Driver") {
+            if (sessionRole === "Student") {
+                window.location.href = "student.html";
+            } else {
+                redirectToLogin();
+            }
+        }
+
+        document.querySelector("[data-logout]")?.addEventListener("click", event => {
+            event.preventDefault();
+            redirectToLogin();
+        });
+
+        const heroTitle = document.querySelector(".hero h1");
+        if (sessionName && heroTitle) {
+            heroTitle.textContent = `${sessionName} · Mission Control`;
+        }
+
+        fetch(`${API_BASE}/driver/info`, {
+            headers: {
+                Authorization: `Bearer ${sessionToken}`
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Unauthorized");
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById("driverName").textContent = data.driverName || "—";
+                document.getElementById("busNumber").textContent = data.busNumber || "—";
+                if (data.user?.email && !sessionName) {
+                    heroTitle.textContent = `${data.user.email} · Mission Control`;
+                }
+            })
+            .catch(() => redirectToLogin());
+    </script>
+</body>
+
+</html>
